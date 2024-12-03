@@ -1,5 +1,6 @@
 package org.emailspring.main.controllers;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
@@ -27,12 +28,12 @@ public class LoginController {
     public LoginController(AuthenticationManager authenticationManager) {
         this.authenticationManager = authenticationManager;
     }
-
     @PostMapping("/login")
     public ResponseEntity<Void> login(@RequestBody LoginRequest loginRequest,
                                       HttpServletRequest request,
                                       HttpServletResponse response) {
         try {
+            Cookie cookie = new Cookie("JSESSIONID", request.getSession().getId());
             System.out.println("Entering login request");
             Authentication authenticationRequest =
                     UsernamePasswordAuthenticationToken.unauthenticated(
@@ -45,7 +46,7 @@ public class LoginController {
             context.setAuthentication(authenticationResponse);
             SecurityContextHolder.setContext(context);
             securityContextRepository.saveContext(context, request, response);
-
+            response.addCookie(cookie);
             return ResponseEntity.ok().build();
         }
         catch (Exception e) {

@@ -5,15 +5,21 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class SiteController {
-    @GetMapping("/")
-    public ResponseEntity<String> home() {
-        return ResponseEntity.ok("");
+    @GetMapping("/status")
+    public ResponseEntity<String> home(@CookieValue("JSESSIONID") String sessionId) {
+        if(sessionId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        else {
+            return ResponseEntity.ok("");
+        }
     }
     @GetMapping("/checkengine")
     public String checkEngine() {
@@ -45,7 +51,7 @@ public class SiteController {
     * то отправляем данные пользователя которые закручены к этой сессии
     * Как соединить сессию и данные пользователя?
     * Как вытащить сессию из реакта? Надо ли?
-    *
+
     * */
 
 }
