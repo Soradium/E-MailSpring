@@ -30,6 +30,8 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.*;
+import org.springframework.session.security.web.authentication.SpringSessionRememberMeServices;
+import org.springframework.util.StringUtils;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -37,6 +39,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.function.Supplier;
 
 import static org.springframework.core.Ordered.LOWEST_PRECEDENCE;
 
@@ -45,7 +48,7 @@ import static org.springframework.core.Ordered.LOWEST_PRECEDENCE;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, @Autowired SpringSessionRememberMeServices rememberMeServices) throws Exception {
 
         http
                 .cors((httpSecurityCorsConfigurer -> {
@@ -56,21 +59,59 @@ public class SecurityConfig {
                     corsConfiguration.addAllowedMethod("*");
                 }))
                 .authorizeHttpRequests((authorize) -> authorize
-                        .requestMatchers(HttpMethod.GET, "/refresh_csrf_token").permitAll()
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/login").permitAll()
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers("/").authenticated()
                         .anyRequest().authenticated()
                 )
                 .csrf((csrf) -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .ignoringRequestMatchers("/refresh_csrf_token")
+                        .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
+                )
+                .rememberMe((rememberMe) -> rememberMe
+                        .rememberMeServices(rememberMeServices)
                 );
 
         return http.build();
     }
+
     public SecurityContextRepository httpSessionSecurityContextRepository() {
         return new HttpSessionSecurityContextRepository();
+    }
+
+    final class SpaCsrfTokenRequestHandler implements CsrfTokenRequestHandler {
+        private final CsrfTokenRequestHandler plain = new CsrfTokenRequestAttributeHandler();
+        private final CsrfTokenRequestHandler xor = new XorCsrfTokenRequestAttributeHandler();
+
+        @Override
+        public void handle(HttpServletRequest request, HttpServletResponse response, Supplier<CsrfToken> csrfToken) {
+            /*
+             * Always use XorCsrfTokenRequestAttributeHandler to provide BREACH protection of
+             * the CsrfToken when it is rendered in the response body.
+             */
+            this.xor.handle(request, response, csrfToken);
+            /*
+             * Render the token value to a cookie by causing the deferred token to be loaded.
+             */
+            csrfToken.get();
+        }
+
+        @Override
+        public String resolveCsrfTokenValue(HttpServletRequest request, CsrfToken csrfToken) {
+            String headerValue = request.getHeader(csrfToken.getHeaderName());
+            /*
+             * If the request contains a request header, use CsrfTokenRequestAttributeHandler
+             * to resolve the CsrfToken. This applies when a single-page application includes
+             * the header value automatically, which was obtained via a cookie containing the
+             * raw CsrfToken.
+             *
+             * In all other cases (e.g. if the request contains a request parameter), use
+             * XorCsrfTokenRequestAttributeHandler to resolve the CsrfToken. This applies
+             * when a server-side rendered form includes the _csrf request parameter as a
+             * hidden input.
+             */
+            return (StringUtils.hasText(headerValue) ? this.plain : this.xor).resolveCsrfTokenValue(request, csrfToken);
+        }
     }
 
     @Bean
