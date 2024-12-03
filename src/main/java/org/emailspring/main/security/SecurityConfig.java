@@ -53,7 +53,7 @@ public class SecurityConfig {
                     corsConfiguration.setAllowCredentials(true);
                     corsConfiguration.addAllowedOrigin("http://localhost:3000");
                     corsConfiguration.addAllowedHeader("*");
-                    corsConfiguration.addAllowedMethod("*");aaaaaa
+                    corsConfiguration.addAllowedMethod("*");
                 }))
                 .authorizeHttpRequests((authorize) -> authorize
                         .requestMatchers(HttpMethod.GET, "/refresh_csrf_token").permitAll()
