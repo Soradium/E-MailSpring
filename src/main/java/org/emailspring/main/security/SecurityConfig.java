@@ -66,6 +66,7 @@ public class SecurityConfig {
                 }))
                 .authorizeHttpRequests((authorize) -> authorize
                         .requestMatchers(HttpMethod.POST, "/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/signup").permitAll()
                         .requestMatchers(HttpMethod.GET,"/error").permitAll()
                         .requestMatchers(HttpMethod.GET,"/fetch").permitAll()
                         .anyRequest().authenticated()
@@ -129,13 +130,12 @@ public class SecurityConfig {
 
     @Bean
     public UserDetailsManager users(@Autowired DataSource dataSource) {
-        UserDetails user = User.withDefaultPasswordEncoder()
-                .username("user")
-                .password("password")
-                .roles("USER")
-                .build();
-        JdbcUserDetailsManager users = new JdbcUserDetailsManager(dataSource);
-        users.createUser(user);
+//        UserDetails user = User.withDefaultPasswordEncoder()
+//                .username("user")
+//                .password("password")
+//                .roles("USER")
+//                .build();
+        //        users.createUser(user);
         return new JdbcUserDetailsManager(dataSource);
     }
 
