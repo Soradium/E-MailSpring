@@ -44,6 +44,7 @@ public class SiteController {
         for (Message m : orig) {
             dto.add(new MessageDTO(m.getUserSender().getUsername(),m.getUserReceiver().getUsername(), m.getContent()));
         }
+
         return ResponseEntity.ok(dto);
     }
 

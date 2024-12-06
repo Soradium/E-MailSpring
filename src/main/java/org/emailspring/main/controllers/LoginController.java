@@ -79,7 +79,8 @@ public class LoginController {
             System.out.println("Entering sign up request");
             User user = new User();
             user.setUsername(loginRequest.username());
-            user.setPassword("{bcrypt}" + new BCryptPasswordEncoder().encode(loginRequest.password()));
+            user.setPassword("{bcrypt}" + new BCryptPasswordEncoder()
+                    .encode(loginRequest.password()));
             user.setEnabled(true);
             entityService.saveUserWithAuthority(user, "ROLE_USER");
             Authentication authenticationRequest =
